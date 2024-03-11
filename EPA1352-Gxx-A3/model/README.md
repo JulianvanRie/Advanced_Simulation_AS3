@@ -35,7 +35,7 @@ A simple transport model demo in MESA for EPA1352 Advanced Simulation course Ass
   
     In this file, you modify and add your own components.
 
-* [model_viz.py](model_viz.py): Sets up the visualization; uses the `SimpleCanvas` element defined. Calls the model. Run the visualization server.
+* [model_viz.py](A3_model_viz.py): Sets up the visualization; uses the `SimpleCanvas` element defined. Calls the model. Run the visualization server.
 
     In this file, you define simple visualization.
 
