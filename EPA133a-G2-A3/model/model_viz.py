@@ -56,8 +56,9 @@ def agent_portrayal(agent):
 
     # define text labels
     if isinstance(agent, Infra) and agent.name != "":
-        portrayal["Text"] = agent.name
-        portrayal["Text_color"] = "DarkSlateGray"
+        if isinstance(agent, Source) or isinstance(agent, Sink):
+            portrayal["Text"] = agent.name
+            portrayal["Text_color"] = "DarkSlateGray"
 
     return portrayal
 

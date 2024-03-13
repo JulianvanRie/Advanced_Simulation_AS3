@@ -55,7 +55,7 @@ class BangladeshModel(Model):
 
     step_time = 1
 
-    file_name = '../data/data_test.csv'
+    file_name = '../data/merged_data.csv'
 
     def __init__(self, seed=None, x_max=500, y_max=500, x_min=0, y_min=0):
 
@@ -79,7 +79,7 @@ class BangladeshModel(Model):
 
         # a list of names of roads to be generated
         # TODO You can also read in the road column to generate this list automatically
-        roads = ['N1', 'N2']
+        roads = ['N1', 'N102', 'N104', 'N105', 'N106', 'N2', 'N204', 'N207', 'N208']
 
         df_objects_all = []
         for road in roads:
