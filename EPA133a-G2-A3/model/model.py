@@ -1,3 +1,4 @@
+import networkx as nx
 from mesa import Model
 from mesa.time import BaseScheduler
 from mesa.space import ContinuousSpace
@@ -74,6 +75,37 @@ class BangladeshModel(Model):
 
         Warning: the labels are the same as the csv column labels
         """
+        self.G = nx.Graph()  # Initialize the Graph attribute of the class
+
+        # Read the CSV file
+        data = pd.read_csv(self.file_name)
+
+        # Add nodes with positions
+        for idx, row in data.iterrows():
+            self.G.add_node(row['id'], pos=(row['lon'], row['lat']), label=row['name'])
+
+        # Add edges for sequential nodes within the same road
+        roads = data.groupby('road')
+        for road_name, group in roads:
+            sorted_group = group.sort_values(by='id')  # Ensure nodes are added sequentially
+            for i in range(len(sorted_group) - 1):
+                self.G.add_edge(sorted_group.iloc[i]['id'], sorted_group.iloc[i + 1]['id'])
+
+        # Handle intersections: connect the end of one road to the start of another if they have the same name in the description
+        for idx, row in data.iterrows():
+            if 'intersection' in row['model_type'].lower():
+                # Find roads mentioned in the description
+                connected_roads = [r.strip() for r in row['name'].split('and')]
+                if len(connected_roads) == 2:
+                    road1, road2 = connected_roads
+                    # Find the nodes at the ends of these roads
+                    road1_nodes = data[(data['road'] == road1) & (data['model_type'] != 'intersection')]
+                    road2_nodes = data[(data['road'] == road2) & (data['model_type'] != 'intersection')]
+                    if not road1_nodes.empty and not road2_nodes.empty:
+                        road1_end_node = road1_nodes.iloc[-1]['id']
+                        road2_start_node = road2_nodes.iloc[0]['id']
+                        # Add edge between these nodes
+                        self.G.add_edge(road1_end_node, road2_start_node)
 
         df = pd.read_csv(self.file_name)
 
@@ -167,6 +199,22 @@ class BangladeshModel(Model):
             if sink is not source:
                 break
         return self.path_ids_dict[source, sink]
+
+    def get_shortest_path(self, source, destination):
+        """
+        Returns the shortest path between the source and destination, checks if it's already there or calculates it.
+        """
+        if (source, destination) in self.path_ids_dict:
+            return self.path_ids_dict[(source, destination)]
+
+        #calculate shortest path with networkx
+        path = nx.shortest_path(self.G, source=source, target=destination)
+        path_series = pd.Series(path)
+
+        #store the computed path
+        self.path_ids_dict[(source, destination)] = path_series
+
+        return path_series
 
     # TODO
     def get_route(self, source):
