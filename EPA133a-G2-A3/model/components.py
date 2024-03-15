@@ -54,8 +54,8 @@ class Bridge(Infra):
                  name='Unknown', road_name='Unknown', condition='Unknown'):
         super().__init__(unique_id, model, length, name, road_name)
         self.total_delay_time = 0
-        self.breaks_down = self.determine_breakdown_chance()
         self.condition = condition
+        self.breaks_down = self.determine_breakdown_chance()
 
         # TODO
         self.delay_time = self.calculate_delay_time() if self.breaks_down else 0
