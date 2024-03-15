@@ -232,7 +232,6 @@ class BangladeshModel(Model):
         """
         Advance the simulation by one step.
         """
-        print(f'Step number:{self.schedule.steps}')
         self.schedule.step()
 
 # EOF -----------------------------------------------------------
