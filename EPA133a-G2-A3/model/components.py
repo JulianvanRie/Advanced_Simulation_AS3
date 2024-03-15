@@ -54,6 +54,7 @@ class Bridge(Infra):
                  name='Unknown', road_name='Unknown', condition='Unknown'):
         super().__init__(unique_id, model, length, name, road_name)
         self.total_delay_time = 0
+        self.break_down_chance = 0
         self.condition = condition
         self.breaks_down = self.determine_breakdown_chance()
 
@@ -65,19 +66,20 @@ class Bridge(Infra):
         # print(self.condition)
         breakdown_probability = self.model.scenario_probabilities.get(self.condition)
         # print('breakdown probability: ', breakdown_probability)
-        return self.random.uniform(0, 100) < breakdown_probability
+        self.break_down_chance = self.model.random.uniform(0, 100)
+        return self.break_down_chance < breakdown_probability
     # TODO
 
     def calculate_delay_time(self):
         # Delay calculation logic based on bridge length
         if self.length > 200:
-            delay = self.random.triangular(1, 2, 4) * 60  # hours to minutes
+            delay = self.model.random.triangular(1, 2, 4) * 60  # hours to minutes
         elif 50 < self.length <= 200:
-            delay = self.random.uniform(45, 90)
+            delay = self.model.random.uniform(45, 90)
         elif 10 < self.length <= 50:
-            delay = self.random.uniform(15, 60)
+            delay = self.model.random.uniform(15, 60)
         elif self.length <= 10:
-            delay = self.random.uniform(10, 20)
+            delay = self.model.random.uniform(10, 20)
         else:
             delay = 0 #no delay if bridge is not broken down
         return delay
