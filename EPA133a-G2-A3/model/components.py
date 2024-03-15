@@ -72,19 +72,7 @@ class Link(Infra):
 
 # ---------------------------------------------------------------
 class Intersection(Infra):
-
-    def __init__(self, unique_id, model,intersects_with, length=0,
-                 name='Unknown', road_name='Unknown'):
-        super().__init__(unique_id, model, length, name, road_name)
-        self.intersects_with = intersects_with
-        # print(self)
-
-
-    def change_route(self, vehicle):
-        vehicle.location = self.model.schedule._agents[self.intersects_with]
-        print(f'Changed {vehicle} its path from {vehicle.path_ids.iloc[0]} -> {vehicle.path_ids.iloc[-1]}')
-        vehicle.path_ids = vehicle.set_new_path()
-        print(f'to {vehicle.path_ids.iloc[0]} -> {vehicle.path_ids.iloc[-1]}')
+    pass
 
 
 
@@ -312,11 +300,6 @@ class Vehicle(Agent):
 
         else:
             # drive to next object:
-            if isinstance(next_infra, Intersection):
-                self.arrive_at_next(next_infra, distance)
-                if len(self.path_ids) - 1 == self.location_index:
-                    self.location_index = 0
-                    self.location.change_route(self)
             self.drive_to_next(distance - next_infra.length)
 
 

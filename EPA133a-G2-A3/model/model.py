@@ -66,15 +66,10 @@ class BangladeshModel(Model):
         self.space = None
         self.sources = []
         self.sinks = []
-
+        self.generate_network()
         self.generate_model()
 
-    def generate_model(self):
-        """
-        generate the simulation model according to the csv file component information
-
-        Warning: the labels are the same as the csv column labels
-        """
+    def generate_network(self):
         self.G = nx.Graph()  # Initialize the Graph attribute of the class
 
         # Read the CSV file
@@ -95,19 +90,14 @@ class BangladeshModel(Model):
         for idx, row in data.iterrows():
             if 'intersection' in row['model_type'].lower():
                 self.G.add_edge(row['id'], row['intersects_with'])
-                # # Find roads mentioned in the description
-                # connected_roads = [r.strip() for r in row['name'].split('and')]
-                # if len(connected_roads) == 2:
-                #     road1, road2 = connected_roads
-                #     # Find the nodes at the ends of these roads
-                #     road1_nodes = data[(data['road'] == road1) & (data['model_type'] != 'intersection')]
-                #     road2_nodes = data[(data['road'] == road2) & (data['model_type'] != 'intersection')]
-                #     if not road1_nodes.empty and not road2_nodes.empty:
-                #         road1_end_node = road1_nodes.iloc[-1]['id']
-                #         road2_start_node = road2_nodes.iloc[0]['id']
-                #         # Add edge between these nodes
-                #         self.G.add_edge(road1_end_node, road2_start_node)
 
+
+    def generate_model(self):
+        """
+        generate the simulation model according to the csv file component information
+
+        Warning: the labels are the same as the csv column labels
+        """
         df = pd.read_csv(self.file_name)
 
         # a list of names of roads to be generated
@@ -190,18 +180,6 @@ class BangladeshModel(Model):
                     self.space.place_agent(agent, (x, y))
                     agent.pos = (x, y)
 
-    def get_random_route_new(self, source):
-        """
-        pick up a random route given an origin
-        """
-        while True:
-            # different source and sink
-            sink = self.random.choice(self.sinks)
-            if sink is not source:
-                break
-        # Find the shortest path for the given source and random chosen sink
-        return self.get_shortest_path(source, sink)
-
     def get_random_route(self, source):
         """
         pick up a random route given an origin
@@ -211,7 +189,7 @@ class BangladeshModel(Model):
             sink = self.random.choice(self.sinks)
             if sink is not source:
                 break
-        return self.path_ids_dict[source, sink]
+        return self.get_shortest_path(source, sink)
 
     def get_shortest_path(self, source, destination):
         """
@@ -236,7 +214,7 @@ class BangladeshModel(Model):
 
     # TODO
     def get_route(self, source):
-        return self.get_random_route_new(source)
+        return self.get_random_route(source)
 
     def get_straight_route(self, source):
         """
@@ -248,6 +226,7 @@ class BangladeshModel(Model):
         """
         Advance the simulation by one step.
         """
+        print(f'Step number:{self.schedule.steps}')
         self.schedule.step()
 
 # EOF -----------------------------------------------------------
