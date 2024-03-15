@@ -72,7 +72,21 @@ class Link(Infra):
 
 # ---------------------------------------------------------------
 class Intersection(Infra):
-    pass
+
+    def __init__(self, unique_id, model,intersects_with, length=0,
+                 name='Unknown', road_name='Unknown'):
+        super().__init__(unique_id, model, length, name, road_name)
+        self.intersects_with = intersects_with
+        # print(self)
+
+
+    def change_route(self, vehicle):
+        vehicle.location = self.model.schedule._agents[self.intersects_with]
+        print(f'Changed {vehicle} its path from {vehicle.path_ids.iloc[0]} -> {vehicle.path_ids.iloc[-1]}')
+        vehicle.path_ids = vehicle.set_new_path()
+        print(f'to {vehicle.path_ids.iloc[0]} -> {vehicle.path_ids.iloc[-1]}')
+
+
 
 
 # ---------------------------------------------------------------
@@ -92,7 +106,7 @@ class Sink(Infra):
     def remove(self, vehicle):
         self.model.schedule.remove(vehicle)
         self.vehicle_removed_toggle = not self.vehicle_removed_toggle
-        print(str(self) + ' REMOVE ' + str(vehicle))
+        # print(str(self) + ' REMOVE ' + str(vehicle))
 
 
 # ---------------------------------------------------------------
@@ -139,7 +153,7 @@ class Source(Infra):
                 Source.truck_counter += 1
                 self.vehicle_count += 1
                 self.vehicle_generated_flag = True
-                print(str(self) + " GENERATE " + str(agent))
+                # print(str(self) + " GENERATE " + str(agent))
         except Exception as e:
             print("Oops!", e.__class__, "occurred.")
 
@@ -233,6 +247,10 @@ class Vehicle(Agent):
         """
         self.path_ids = self.model.get_route(self.generated_by.unique_id)
 
+    def set_new_path(self):
+        self.path_ids = self.model.get_route(self.location.unique_id)
+        return self.path_ids
+
     def step(self):
         """
         Vehicle waits or drives at each step
@@ -249,7 +267,7 @@ class Vehicle(Agent):
         """
         To print the vehicle trajectory at each step
         """
-        print(self)
+        # print(self)
 
     def drive(self):
 
@@ -269,11 +287,9 @@ class Vehicle(Agent):
         """
         vehicle shall move to the next object with the given distance
         """
-
         self.location_index += 1
         next_id = self.path_ids[self.location_index]
         next_infra = self.model.schedule._agents[next_id]  # Access to protected member _agents
-
         if isinstance(next_infra, Sink):
             # arrive at the sink
             self.arrive_at_next(next_infra, 0)
@@ -292,9 +308,17 @@ class Vehicle(Agent):
         if next_infra.length > distance:
             # stay on this object:
             self.arrive_at_next(next_infra, distance)
+
+
         else:
             # drive to next object:
+            if isinstance(next_infra, Intersection):
+                self.arrive_at_next(next_infra, distance)
+                if len(self.path_ids) - 1 == self.location_index:
+                    self.location_index = 0
+                    self.location.change_route(self)
             self.drive_to_next(distance - next_infra.length)
+
 
     def arrive_at_next(self, next_infra, location_offset):
         """

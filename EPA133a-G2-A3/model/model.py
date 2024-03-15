@@ -96,14 +96,28 @@ class BangladeshModel(Model):
                 3. put the path in reversed order and reindex
                 4. add the path to the path_ids_dict so that the vehicles can drive backwards too
                 """
+
                 path_ids = df_objects_on_road['id']
+                path_ids2 = df_objects_on_road
+                path_ids2.reset_index(inplace=True, drop=True)
                 path_ids.reset_index(inplace=True, drop=True)
                 self.path_ids_dict[path_ids[0], path_ids.iloc[-1]] = path_ids
                 self.path_ids_dict[path_ids[0], None] = path_ids
+                intersections_id = path_ids2[path_ids2['model_type'] == "intersection"]
+                for index, row in intersections_id.iterrows():
+                    new_path = path_ids[index:]
+                    new_path.reset_index(inplace=True, drop=True)
+                    self.path_ids_dict[row['id'], path_ids.iloc[-1]] = new_path
+                    self.path_ids_dict[row['id'], None] = new_path
+                    new_path = path_ids[:index+1]
+                    new_path = new_path[::-1]
+                    new_path.reset_index(inplace=True, drop=True)
+                    self.path_ids_dict[row['id'], path_ids.iloc[0]] = new_path
                 path_ids = path_ids[::-1]
                 path_ids.reset_index(inplace=True, drop=True)
                 self.path_ids_dict[path_ids[0], path_ids.iloc[-1]] = path_ids
                 self.path_ids_dict[path_ids[0], None] = path_ids
+                print('lets go new round')
 
         # put back to df with selected roads so that min and max and be easily calculated
         df = pd.concat(df_objects_all)
@@ -148,7 +162,7 @@ class BangladeshModel(Model):
                     agent = Link(row['id'], self, row['length'], name, row['road'])
                 elif model_type == 'intersection':
                     if not row['id'] in self.schedule._agents:
-                        agent = Intersection(row['id'], self, row['length'], name, row['road'])
+                        agent = Intersection(row['id'], self, row['intersects_with'] , row['length'], name, row['road'])
 
                 if agent:
                     self.schedule.add(agent)
@@ -170,7 +184,7 @@ class BangladeshModel(Model):
 
     # TODO
     def get_route(self, source):
-        return self.get_straight_route(source)
+        return self.get_random_route(source)
 
     def get_straight_route(self, source):
         """
