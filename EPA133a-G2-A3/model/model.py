@@ -58,7 +58,7 @@ class BangladeshModel(Model):
 
     file_name = '../data/merged_data.csv'
 
-    def __init__(self, seed=None, x_max=500, y_max=500, x_min=0, y_min=0):
+    def __init__(self, scenario_probabilities, seed=None, x_max=500, y_max=500, x_min=0, y_min=0):
 
         self.schedule = BaseScheduler(self)
         self.running = True
@@ -66,8 +66,13 @@ class BangladeshModel(Model):
         self.space = None
         self.sources = []
         self.sinks = []
+        self.bridges = []
         self.generate_network()
+        self.scenario_probabilities = scenario_probabilities
         self.generate_model()
+
+    def get_scenario_probabilities(self):
+        return self.scenario_probabilities
 
     def generate_network(self):
         self.G = nx.Graph()  # Initialize the Graph attribute of the class
@@ -167,6 +172,7 @@ class BangladeshModel(Model):
                     self.sinks.append(agent.unique_id)
                 elif model_type == 'bridge':
                     agent = Bridge(row['id'], self, row['length'], name, row['road'], row['condition'])
+                    self.bridges.append(agent)
                 elif model_type == 'link':
                     agent = Link(row['id'], self, row['length'], name, row['road'])
                 elif model_type == 'intersection':

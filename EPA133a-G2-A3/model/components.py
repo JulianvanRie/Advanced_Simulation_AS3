@@ -53,14 +53,35 @@ class Bridge(Infra):
     def __init__(self, unique_id, model, length=0,
                  name='Unknown', road_name='Unknown', condition='Unknown'):
         super().__init__(unique_id, model, length, name, road_name)
-
+        self.total_delay_time = 0
+        self.breaks_down = self.determine_breakdown_chance()
         self.condition = condition
 
         # TODO
-        self.delay_time = self.random.randrange(0, 10)
+        self.delay_time = self.calculate_delay_time() if self.breaks_down else 0
         # print(self.delay_time)
-
+    def determine_breakdown_chance(self):
+        #calculate if bridge is broken down based on the chances as input in the model initialisation
+        # print(self.condition)
+        breakdown_probability = self.model.scenario_probabilities.get(self.condition)
+        # print('breakdown probability: ', breakdown_probability)
+        return self.random.uniform(0, 100) < breakdown_probability
     # TODO
+
+    def calculate_delay_time(self):
+        # Delay calculation logic based on bridge length
+        if self.length > 200:
+            delay = self.random.triangular(1, 2, 4) * 60  # hours to minutes
+        elif 50 < self.length <= 200:
+            delay = self.random.uniform(45, 90)
+        elif 10 < self.length <= 50:
+            delay = self.random.uniform(15, 60)
+        elif self.length <= 10:
+            delay = self.random.uniform(10, 20)
+        else:
+            delay = 0 #no delay if bridge is not broken down
+        return delay
+
     def get_delay_time(self):
         return self.delay_time
 
@@ -311,5 +332,8 @@ class Vehicle(Agent):
         self.location = next_infra
         self.location_offset = location_offset
         self.location.vehicle_count += 1
+        if isinstance(next_infra, Bridge):
+            self.location.total_delay_time += self.location.delay_time
+
 
 # EOF -----------------------------------------------------------
