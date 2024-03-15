@@ -1,3 +1,4 @@
+import networkx as nx
 from mesa import Model
 from mesa.time import BaseScheduler
 from mesa.space import ContinuousSpace
@@ -74,6 +75,38 @@ class BangladeshModel(Model):
 
         Warning: the labels are the same as the csv column labels
         """
+        self.G = nx.Graph()  # Initialize the Graph attribute of the class
+
+        # Read the CSV file
+        data = pd.read_csv(self.file_name)
+
+        # Add nodes with positions
+        for idx, row in data.iterrows():
+            self.G.add_node(row['id'], pos=(row['lon'], row['lat']), label=row['name'])
+
+        # Add edges for sequential nodes within the same road
+        roads = data.groupby('road')
+        for road_name, group in roads:
+            sorted_group = group.sort_values(by='id')  # Ensure nodes are added sequentially
+            for i in range(len(sorted_group) - 1):
+                self.G.add_edge(sorted_group.iloc[i]['id'], sorted_group.iloc[i + 1]['id'])
+
+        # Handle intersections: connect the end of one road to the start of another if they have the same name in the description
+        for idx, row in data.iterrows():
+            if 'intersection' in row['model_type'].lower():
+                self.G.add_edge(row['id'], row['intersects_with'])
+                # # Find roads mentioned in the description
+                # connected_roads = [r.strip() for r in row['name'].split('and')]
+                # if len(connected_roads) == 2:
+                #     road1, road2 = connected_roads
+                #     # Find the nodes at the ends of these roads
+                #     road1_nodes = data[(data['road'] == road1) & (data['model_type'] != 'intersection')]
+                #     road2_nodes = data[(data['road'] == road2) & (data['model_type'] != 'intersection')]
+                #     if not road1_nodes.empty and not road2_nodes.empty:
+                #         road1_end_node = road1_nodes.iloc[-1]['id']
+                #         road2_start_node = road2_nodes.iloc[0]['id']
+                #         # Add edge between these nodes
+                #         self.G.add_edge(road1_end_node, road2_start_node)
 
         df = pd.read_csv(self.file_name)
 
@@ -88,36 +121,22 @@ class BangladeshModel(Model):
 
             if not df_objects_on_road.empty:
                 df_objects_all.append(df_objects_on_road)
-
-                """
-                Set the path 
-                1. get the serie of object IDs on a given road in the cvs in the original order
-                2. add the (straight) path to the path_ids_dict
-                3. put the path in reversed order and reindex
-                4. add the path to the path_ids_dict so that the vehicles can drive backwards too
-                """
-
-                path_ids = df_objects_on_road['id']
-                path_ids2 = df_objects_on_road
-                path_ids2.reset_index(inplace=True, drop=True)
-                path_ids.reset_index(inplace=True, drop=True)
-                self.path_ids_dict[path_ids[0], path_ids.iloc[-1]] = path_ids
-                self.path_ids_dict[path_ids[0], None] = path_ids
-                intersections_id = path_ids2[path_ids2['model_type'] == "intersection"]
-                for index, row in intersections_id.iterrows():
-                    new_path = path_ids[index:]
-                    new_path.reset_index(inplace=True, drop=True)
-                    self.path_ids_dict[row['id'], path_ids.iloc[-1]] = new_path
-                    self.path_ids_dict[row['id'], None] = new_path
-                    new_path = path_ids[:index+1]
-                    new_path = new_path[::-1]
-                    new_path.reset_index(inplace=True, drop=True)
-                    self.path_ids_dict[row['id'], path_ids.iloc[0]] = new_path
-                path_ids = path_ids[::-1]
-                path_ids.reset_index(inplace=True, drop=True)
-                self.path_ids_dict[path_ids[0], path_ids.iloc[-1]] = path_ids
-                self.path_ids_dict[path_ids[0], None] = path_ids
-                print('lets go new round')
+        #
+        #         """
+        #         Set the path
+        #         1. get the serie of object IDs on a given road in the cvs in the original order
+        #         2. add the (straight) path to the path_ids_dict
+        #         3. put the path in reversed order and reindex
+        #         4. add the path to the path_ids_dict so that the vehicles can drive backwards too
+        #         """
+        #         path_ids = df_objects_on_road['id']
+        #         path_ids.reset_index(inplace=True, drop=True)
+        #         self.path_ids_dict[path_ids[0], path_ids.iloc[-1]] = path_ids
+        #         self.path_ids_dict[path_ids[0], None] = path_ids
+        #         path_ids = path_ids[::-1]
+        #         path_ids.reset_index(inplace=True, drop=True)
+        #         self.path_ids_dict[path_ids[0], path_ids.iloc[-1]] = path_ids
+        #         self.path_ids_dict[path_ids[0], None] = path_ids
 
         # put back to df with selected roads so that min and max and be easily calculated
         df = pd.concat(df_objects_all)
@@ -162,7 +181,7 @@ class BangladeshModel(Model):
                     agent = Link(row['id'], self, row['length'], name, row['road'])
                 elif model_type == 'intersection':
                     if not row['id'] in self.schedule._agents:
-                        agent = Intersection(row['id'], self, row['intersects_with'] , row['length'], name, row['road'])
+                        agent = Intersection(row['id'], self, row['length'], name, row['road'])
 
                 if agent:
                     self.schedule.add(agent)
@@ -170,6 +189,18 @@ class BangladeshModel(Model):
                     x = row['lon']
                     self.space.place_agent(agent, (x, y))
                     agent.pos = (x, y)
+
+    def get_random_route_new(self, source):
+        """
+        pick up a random route given an origin
+        """
+        while True:
+            # different source and sink
+            sink = self.random.choice(self.sinks)
+            if sink is not source:
+                break
+        # Find the shortest path for the given source and random chosen sink
+        return self.get_shortest_path(source, sink)
 
     def get_random_route(self, source):
         """
@@ -182,9 +213,30 @@ class BangladeshModel(Model):
                 break
         return self.path_ids_dict[source, sink]
 
+    def get_shortest_path(self, source, destination):
+        """
+        Returns the shortest path between the source and destination, checks if it's already there or calculates it.
+        """
+        # print(f'Starting making a shortest path between {source} and {destination}')
+        if (source, destination) in self.path_ids_dict:
+            # print('the if statement triggered')
+            return self.path_ids_dict[(source, destination)]
+
+        #calculate shortest path with networkx
+        # print('I reached point 1')
+        path = nx.shortest_path(self.G, source=source, target=destination)
+        path_series = pd.Series(path)
+        # print('I reached point 2')
+
+        #store the computed path
+        # print(f'I made a path here between {source} and {destination}')
+        self.path_ids_dict[(source, destination)] = path_series
+
+        return path_series
+
     # TODO
     def get_route(self, source):
-        return self.get_random_route(source)
+        return self.get_random_route_new(source)
 
     def get_straight_route(self, source):
         """
