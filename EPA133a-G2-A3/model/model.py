@@ -1,10 +1,12 @@
 import networkx as nx
-from mesa import Model
+from mesa import Model, DataCollector
 from mesa.time import BaseScheduler
 from mesa.space import ContinuousSpace
 from components import Source, Sink, SourceSink, Bridge, Link, Intersection
 import pandas as pd
 from collections import defaultdict
+import math as math
+import mesa
 
 
 # ---------------------------------------------------------------
@@ -71,6 +73,7 @@ class BangladeshModel(Model):
         self.generate_model()
         self.generate_network()
 
+
     def get_scenario_probabilities(self):
         return self.scenario_probabilities
 
@@ -94,7 +97,12 @@ class BangladeshModel(Model):
         for road_name, group in roads:
             sorted_group = group.sort_values(by='id')  # Ensure nodes are added sequentially
             for i in range(len(sorted_group) - 1):
-                self.G.add_edge(sorted_group.iloc[i]['id'], sorted_group.iloc[i + 1]['id'], weight=sorted_group.iloc[i]['length'])
+                if math.isnan(sorted_group.iloc[i]['length']):
+                    self.G.add_edge(sorted_group.iloc[i]['id'], sorted_group.iloc[i + 1]['id'],
+                                    weight=0.2)  # this is the specific bridge Narayanpur Bridge which has a NaN, we looked up the length on google
+                    # print(self.G.edges[(sorted_group.iloc[i]['id'], sorted_group.iloc[i + 1]['id'])])
+                else:
+                    self.G.add_edge(sorted_group.iloc[i]['id'], sorted_group.iloc[i + 1]['id'], weight=sorted_group.iloc[i]['length'])
 
 
         # Handle intersections: connect the end of one road to the start of another if they have the same name in the description
@@ -195,6 +203,7 @@ class BangladeshModel(Model):
                     x = row['lon']
                     self.space.place_agent(agent, (x, y))
                     agent.pos = (x, y)
+        Source.truck_counter = 0
 
     def get_random_route(self, source):
         """
@@ -225,7 +234,7 @@ class BangladeshModel(Model):
         for i in range(len(path) - 1):
             edge_weight = self.G[path[i]][path[i + 1]]['weight']
             total_weight += edge_weight
-        print(f"Total weight of the path {path[0], path[-1]}: {total_weight}")
+        # print(f"Total weight of the path {path[0], path[-1]}, length {len(path)}: {total_weight}")
         #store the computed path
         # print(f'I made a path here between {source} and {destination}')
         self.path_ids_dict[(source, destination)] = path_series
@@ -248,4 +257,18 @@ class BangladeshModel(Model):
         """
         self.schedule.step()
 
+
 # EOF -----------------------------------------------------------
+def get_bridge_data(model):
+    bridge_data = []
+    for agent in model.schedule.agents:
+        if isinstance(agent, Bridge):
+            bridge_data.append({
+                "unique_id": agent.unique_id,
+                "condition": agent.condition,
+                "total_delay_time": agent.total_delay_time,
+                "delay_time": agent.delay_time,
+                "break_down_chance": agent.break_down_chance,
+                "breaks_down": agent.breaks_down
+            })
+    return bridge_data

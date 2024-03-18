@@ -142,6 +142,8 @@ class Source(Infra):
 
     """
 
+
+
     truck_counter = 0
     generation_frequency = 5
     vehicle_generated_flag = False
