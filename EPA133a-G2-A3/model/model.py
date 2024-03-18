@@ -67,9 +67,9 @@ class BangladeshModel(Model):
         self.sources = []
         self.sinks = []
         self.bridges = []
-        self.generate_network()
         self.scenario_probabilities = scenario_probabilities
         self.generate_model()
+        self.generate_network()
 
     def get_scenario_probabilities(self):
         return self.scenario_probabilities
@@ -82,20 +82,30 @@ class BangladeshModel(Model):
 
         # Add nodes with positions
         for idx, row in data.iterrows():
-            self.G.add_node(row['id'], pos=(row['lon'], row['lat']), label=row['name'])
+            self.G.add_node(row['id'], pos=(row['lon'], row['lat']), label=row['name'], weight=0)
+            if row['model_type'] == 'bridge':
+               for bridge in self.bridges:
+                   if row['id'] == bridge.unique_id:
+                        vehicle_speed = 48 * 1000 / 60 / 1000
+                        self.G.nodes[row['id']]['weight'] = bridge.delay_time * vehicle_speed  # is now in km
 
         # Add edges for sequential nodes within the same road
         roads = data.groupby('road')
         for road_name, group in roads:
             sorted_group = group.sort_values(by='id')  # Ensure nodes are added sequentially
             for i in range(len(sorted_group) - 1):
-                self.G.add_edge(sorted_group.iloc[i]['id'], sorted_group.iloc[i + 1]['id'])
+                self.G.add_edge(sorted_group.iloc[i]['id'], sorted_group.iloc[i + 1]['id'], weight=sorted_group.iloc[i]['length'])
+
 
         # Handle intersections: connect the end of one road to the start of another if they have the same name in the description
         for idx, row in data.iterrows():
             if 'intersection' in row['model_type'].lower():
-                self.G.add_edge(row['id'], row['intersects_with'])
+                self.G.add_edge(row['id'], row['intersects_with'], weight=0)
 
+        for u, v, d in self.G.edges(data=True):
+
+            node_u_weight = self.G.nodes[u].get('weight', 0)
+            d['weight'] += node_u_weight
 
     def generate_model(self):
         """
@@ -208,10 +218,14 @@ class BangladeshModel(Model):
 
         #calculate shortest path with networkx
         # print('I reached point 1')
-        path = nx.shortest_path(self.G, source=source, target=destination)
+        path = nx.shortest_path(self.G, source=source, target=destination, weight='weight')
         path_series = pd.Series(path)
         # print('I reached point 2')
-
+        total_weight = 0
+        for i in range(len(path) - 1):
+            edge_weight = self.G[path[i]][path[i + 1]]['weight']
+            total_weight += edge_weight
+        print(f"Total weight of the path {path[0], path[-1]}: {total_weight}")
         #store the computed path
         # print(f'I made a path here between {source} and {destination}')
         self.path_ids_dict[(source, destination)] = path_series

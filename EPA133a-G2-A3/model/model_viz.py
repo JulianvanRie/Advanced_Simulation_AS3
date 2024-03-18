@@ -75,9 +75,10 @@ canvas_height = 400
 space = SimpleCanvas(agent_portrayal, canvas_width, canvas_height)
 
 server = ModularServer(BangladeshModel,
-                       [space],
+                       [space],  # Assuming 'space' is correctly defined elsewhere
                        "Transport Model Demo",
-                       {"seed": 1234567})
+                       {"scenario_probabilities": {'A': 5, 'B': 10, 'C': 20, 'D': 40},
+                        "seed": 1234567})
 
 # The default port
 server.port = 8521

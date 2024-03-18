@@ -222,7 +222,7 @@ class Vehicle(Agent):
     """
 
     # 48 km/h translated into meter per min
-    speed = 48 * 1000 / 60
+    speed = 48 * 1000 / 60 /1000
     # One tick represents 1 minute
     step_time = 1
 
