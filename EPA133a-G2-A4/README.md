@@ -1,24 +1,26 @@
-# Example README File
+# Assigment 04 Network Analysis
 
-Created by: EPA133a Group xx
+Created by: EPA133a Group 02
 
-|    Name     | Student Number |
-| :---------: | :------------- |
-| Mary White  | 1234567        |
-| David Brown | 7654321        |
+|        Name         | Student Number |
+|:-------------------:|:---------------|
+|   Anne Stehouwer    | 4455142        |
+| Jelle van den Brink | 4923715        |
+|  Julian van Rie     | 4867882        |
+|   Sven Koper        | 4913876        |
+|  Willemijn Loonen   | 4829301        |
+
 
 ## Introduction
+This is assignment 4 for the course Advanced Simulation at the TU Delft. In this assignment we analyse the road and bridge network in Bangladesh to determine which bridges & roads are most critical and vulnerable.
 
-Every project should have a README file to help a first-time user understand what it is about and how they might be able to use it. This file is where you (as a group) shall provide the information needed by the TAs to evaluate and grade your work.
+## File Description
 
-If you are looking for information about the Demo model of Assignment 3, navigate to the [model/README.md](model/README.md) in the [model](model) directory. Have **fun** modeling in Python!
+This file contains the following files:
+- data: this file contain the input data for the model.
+- img: this file contains the images created during the model run.
+- model: this file contains the main model, which are just jupyter notebooks this time.
+- report: in this file the final report is located.
 
-## How to Use
+The model is rather simple this time and exist out of data-cleaning, network creation and network analysis.
 
-Include whatever you think is necessary for someone to understand your work. The README file is usually the first file someone will see and open. It doesn't need to explain what might be obvious, but it should point out the most important things for someone looking at your work. For example, how to launch your program, what are the main files, where to find them, etc.
-
-### Format
-
-Most README files for data or software projects are now written in Markdown format, like this document. There are some different flavours, but they are easy to write. See here for more information https://www.markdownguide.org/basic-syntax
-
-Most IDEs can render Markdown files directly.
